@@ -13,13 +13,15 @@ import {
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import agent from "../../app/api/agent";
-import { useStoreContext } from "../../app/context/StoreContext";
 import NotFound from "../../app/errors/NotFound";
 import { LoadingComponent } from "../../app/layout/LoadingComponent";
 import { Product } from "../../app/model/product";
+import { useAppDispatch, useAppSelector } from "../../app/store/storeConfigure";
+import { setBasket } from "../basket/basketSlice";
 
 export default function ProductDetails() {
-  const { basket, setBasket, removeItem } = useStoreContext();
+  const { basket } = useAppSelector((state) => state.basket);
+  const dispatch = useAppDispatch();
   const { id } = useParams<{ id: string }>();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -44,15 +46,19 @@ export default function ProductDetails() {
   function handleUpdateChange() {
     setSubmiitting(true);
     if (!item || quantity > item.quantity) {
-      const updatedQuantity = item ? quantity : quantity;
+      const updatedQuantity = item ? quantity - item.quantity : quantity;
       agent.Basket.addItem(product?.id!, updatedQuantity)
-        .then((basket) => setBasket(basket))
+        .then((basket) => dispatch(setBasket(basket)))
         .catch((error) => console.log(error))
         .finally(() => setSubmiitting(false));
     } else {
       const updatedQuantity = item.quantity - quantity;
       agent.Basket.removeItem(product?.id!, updatedQuantity)
-        .then(() => removeItem(product?.id!, updatedQuantity))
+        .then(() =>
+          dispatch(
+            removeItem({ productId: product?.id, quantity: updatedQuantity })
+          )
+        )
         .catch((error) => console.log(error))
         .finally(() => setSubmiitting(false));
     }
@@ -134,4 +140,10 @@ export default function ProductDetails() {
       </Grid>
     </Grid>
   );
+}
+function removeItem(arg0: {
+  productId: number | undefined;
+  quantity: number;
+}): any {
+  throw new Error("Function not implemented.");
 }
